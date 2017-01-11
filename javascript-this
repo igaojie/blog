@@ -1,1 +1,144 @@
 
+1. 看代码分析输出结果
+
+```
+var fullname = 'John Doe';
+var obj = {
+    fullname: 'Colin Ihring',
+    prop:{
+        fullname:'Aurelio De Rosa',
+        getFullname:function(){
+            return this.fullname;
+        }
+    }
+}
+
+console.log(obj.prop.getFullname());
+var test  =obj.prop.getFullname;
+console.log(test());
+```
+
+上面的代码打印出 Aurelio De Rosa 和 John Doe。原因是在 JavaScript 中，一个函数的上下文环境，也就是this关键词所引用对象，是依赖于函数是如何被调用的，而不是依赖于函数如何被定义的。
+
+在第一个 console.log() 调用中， getFullname() 是作为 obj.prop 的函数被调用的。因此，这里的上下文环境指向后者并且函数返回this对象的 fullname 属性。相反，当 getFullname() 被赋为test变量的值时，那个语境指向全局对象(window)。这是因为，test 被隐式设置为全局对象的属性。因此，函数调用返回 window 的 fullname 属性值，在此段代码中，这个值是通过第一行赋值语句设置的。
+
+2. 如何让最后一个 console.log() 打印出 Aurelio De Rosa。
+
+```
+console.log(test.call(obj.prop));
+```
+
+---
+2. 看下面代码
+
+```
+var obj = {
+  name: 'golnmp',
+  foo: function() {
+    console.log(this);
+  },
+  foo2: function() {
+    console.log(this);
+    setTimeout(this.foo, 1000);
+  }
+}
+ 
+obj.foo2();
+```
+执行这段代码我们会发现两次打印出来的 this 是不一样的：
+
+第一次是 foo2 中直接打印 this，这里指向 obj 这个对象，我们毋庸置疑；
+
+但是在 setTimeout 中执行的 this.foo ，却指向了全局对象，这里不是把它当作函数的方法使用吗？这一点经常让很多初学者疑惑； 
+其实，setTimeout 也只是一个函数而已，函数必然有可能需要参数，我们把 this.foo 当作一个参数传给 setTimeout 这个函数，就像它需要一个 fun 参数，在传入参数的时候，其实做了个这样的操作 fun = this.foo，看到没有，这里我们直接把 fun 指向 this.foo 的引用；执行的时候其实是执行了 fun() 所以已经和 obj 无关了，它是被当作普通函数直接调用的，因此 this 指向全局对象。
+
+这个问题是很多异步回调函数中普遍会碰到的；
+
+为了解决这个问题，我们可以利用 闭包 的特性来处理：
+
+
+```
+var obj = {
+  name: 'golnmp',
+  foo: function() {
+    console.log('foo1 this: ' + this);
+  },
+  foo2: function() {
+    console.log('foo2 this: ' + this);
+
+    var _this = this;
+    setTimeout(function(){
+        console.log(this);
+        console.log(_this);
+    },1000)
+
+    //setTimeout(this.foo, 1000);
+  }
+}
+ 
+obj.foo2();
+```
+可以看到直接用 this 仍然是 Window；因为 foo2 中的 this 是指向 obj，我们可以先用一个变量 _this 来储存，然后在回调函数中使用 _this，就可以指向当前的这个对象了；
+
+
+---
+
+```
+function Person(name){
+    this.name = name;
+    console.log(this);
+}
+
+var p = new Person('golnmp');//person
+
+var pp = Person('gogo');//window
+```
+
+我们可以看到当作构造函数调用时，this 指向了这个构造函数调用时候实例化出来的对象；
+
+当然，构造函数其实也是一个函数，如果我们把它当作一个普通函数执行，这个 this 仍然执行全局：
+
+其区别在于，如何调用函数（new）。
+
+
+---
+#### 箭头函数
+在 ES6 的新规范中，加入了箭头函数，它和普通函数最不一样的一点就是 this 的指向了，还记得在上文中我们使用闭包来解决 this 的指向问题吗，如果用上了箭头函数就可以更完美的解决了：
+
+
+```
+var obj = {
+  name: 'golnmp',
+  foo: function() {
+    console.log('foo1 this: ' + this);
+  },
+  foo2: function() {
+    console.log(this);
+
+    setTimeout(()=>{
+        console.log(this);
+    },1000)
+
+    //setTimeout(this.foo, 1000);
+  }
+}
+ 
+obj.foo2();
+```
+
+可以看到，在 setTimeout 执行的函数中，本应该打印出在 Window，但是在这里 this 却指向了 obj，原因就在于，给 setTimeout 传入的函数（参数）是一个箭头函数：
+
+函数体内的this对象，就是定义时所在的对象，而不是使用时所在的对象。 
+根据例子我们理解一下这句话： 
+在 obj.foo2() 执行的时候，当前的 this 指向 obj；在执行 setTimeout 时候，我们先是定义了一个匿名的箭头函数，关键点就在这，箭头函数内的 this 执行定义时所在的对象，就是指向定义这个箭头函数时作用域内的 this，也就是 obj.foo2 中的 this，即 obj；所以在执行箭头函数的时候，它的 this -> obj.foo2 中的 this -> obj；
+
+简单来说， 箭头函数中的 this 只和定义它时候的作用域的 this 有关，而与在哪里以及如何调用它无关，同时它的 this 指向是不可改变的。
+
+
+
+
+
+
+
+
+
