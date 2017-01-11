@@ -1,0 +1,24 @@
+1. 在String对象上定义一个repeatify函数。这个函数接受一个整数参数，来明确字符串需要重复几次。这个函数要求字符串重复指定的次数。举个例子：
+
+
+```
+'golnmp'.repeatify(3);//golnmpgolnmpgolnmp
+```
+
+考察：
+对于JavaScript中继承的掌握，以及prototype这个属性。这也验证了开发人员是否有能力扩展原生数据类型的功能
+
+验证你是否意识到并知道如何避免覆盖已经存在的函数。这可以通过在自定义函数之前判断该函数是否存在来做到
+
+
+```
+String.prototype.go = String.prototype.repeatify || function(num){
+    var res = '';
+    for(i=0;i<num;i++){
+        res += this;
+    };
+    return res;
+};
+
+'golnmp'.repeatify(4);
+```
