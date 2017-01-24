@@ -1,0 +1,127 @@
+#### brew 安装
+
+1. brew update
+2. brew upgrade
+3. brew search php71
+4. brew install homebrew/php/php71
+
+
+---
+
+```
+brew install homebrew/php/php71
+==> Installing php71 from homebrew/homebrew-php
+Error: Formulae found in multiple taps:
+
+homebrew/php/php71
+josegonzalez/php/php71
+Please use the fully-qualified name e.g. homebrew/php/php71 to refer the formula.
+```
+
+解决方案：
+
+```
+brew uptap josegonzalez/php
+brew tap --repair
+brew update
+```
+
+
+#### 安装成功
+
+php位置：
+
+```
+/usr/local/opt/php71/bin/php -v
+/usr/local/opt/php71/sbin/php-fpm 
+```
+
+
+#### nginx配置
+
+由于默认系统里已经有个php版本PHP 5.6.27 占用9000端口，那么我将php7.1端口改为9071.
+
+修改文件：
+vim /usr/local/etc/php/7.1/php-fpm.d/www.conf
+
+保存 重启php7.1
+
+/usr/local/opt/php71/sbin/php71-fpm restart
+
+将nginx里的配置块改一下：
+
+```
+location ~ \.php {
+		include     fastcgi_params;
+        fastcgi_pass   127.0.0.1:9071;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        
+
+        
+    }
+```
+重启nginx
+
+
+执行一个url发现事情不是那么顺利，出现了一个File not found。
+
+可是文件的确是存在的啊。
+
+那来看看nginx的报错吧。能不能发现一些端倪：
+
+```
+2017/01/24 10:49:10 [error] 30415#0: *111 FastCGI sent in stderr: "Primary script unknown" while reading response header from upstream, client: 127.0.0.1, server: local.qiwen.me, request: "GET /phpinfo.php HTTP/1.1", upstream: "fastcgi://127.0.0.1:9071", host: "localhost"
+```
+好，只要有错误信息，就一步步往下追就可以了。
+
+#### 追查步骤
+1. 先确认文件是否存在？
+
+```
+#nginx里配置文件地址输出到access日志文件
+log_format scripts '$document_root$fastcgi_script_name > $request'; 
+
+#日志文件地址
+access_log  /Users/xxx/Works/$server_name.access.log  scripts;
+```
+
+执行一下，确实发现了文件是存在的。
+
+/xxx/localhost/phpinfo.php > GET /phpinfo.php HTTP/1.1
+
+
+2. 文件存在，是不是执行用户组的问题。
+修改配置：
+
+```
+vim /usr/local/etc/php/7.1/php-fpm.d/www.conf
+
+user = 用户名
+group = staff
+```
+
+重启php7.1
+
+/usr/local/opt/php71/sbin/php71-fpm restart
+
+ok
+
+
+
+---
+参考网址：
+
+http://serverfault.com/questions/517190/nginx-1-fastcgi-sent-in-stderr-primary-script-unknown
+
+
+
+
+
+---
+curl -s http://php-osx.liip.ch/install.sh | bash -s 7.1
+
+downloading https://s3-eu-west-1.amazonaws.com/php-osx.liip.ch/install/7.1-10.10/frontenddev/7.1-10.10-frontenddev-7.1.0-20161202-092124.tar.bz2
+这一步一直过不去。。。。。。
+
+
